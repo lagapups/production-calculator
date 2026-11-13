@@ -68,7 +68,7 @@ td input{padding:10px 6px}td:nth-child(3) input{text-align:center}.output{text-a
 <button id="copy" type="button">Скопировать расчёт</button>
 <button id="clear" type="button" class="secondary">Очистить компоненты</button>
 </div>
-<p class="hint">Для PDF выбери в открывшемся меню печати «Сохранить как PDF». Расчёт: масса партии (кг) × процент × 10 = граммы. Данные остаются только в открытой вкладке, пока ты их не скопируешь.</p>
+<p class="hint">Кнопка PDF скачивает готовый файл на телефон. Расчёт: масса партии (кг) × процент × 10 = граммы. Данные остаются только в открытой вкладке, пока ты их не скопируешь.</p>
 </main>
 <section id="printReport" aria-hidden="true">
 <div class="printBrand">NIO CITY</div>
@@ -77,6 +77,8 @@ td input{padding:10px 6px}td:nth-child(3) input{text-align:center}.output{text-a
 <table class="printTable"><thead><tr><th>№</th><th>Компонент</th><th>Доля, %</th><th>Навеска, г</th></tr></thead><tbody id="printRows"></tbody><tfoot><tr><th colspan="2">ИТОГО</th><th id="printTotalPercent"></th><th id="printTotalGrams"></th></tr></tfoot></table>
 <p id="printNote"></p>
 </section>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.12/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.12/vfs_fonts.js"></script>
 <script>
 const rows=document.getElementById('rows');
 const productNameInput=document.getElementById('productName');
@@ -131,22 +133,44 @@ document.getElementById('pdf').addEventListener('click',()=>{
  if(!calculate()){alert('Проверь массу партии и проценты перед сохранением PDF.');return;}
  const filled=fields.filter(r=>r.name.value.trim()||r.percent.value.trim());
  if(!filled.length){alert('Заполни хотя бы одну строку рецептуры.');return;}
- const printRows=document.getElementById('printRows');
- printRows.replaceChildren();
- filled.forEach((r,i)=>{
-  const tr=document.createElement('tr');
-  const values=[String(i+1),r.name.value.trim()||'Без названия',r.percent.value.trim()||'—',r.percent.value.trim()?r.out.textContent:'—'];
-  values.forEach(value=>{const td=document.createElement('td');td.textContent=value;tr.append(td);});
-  printRows.append(tr);
- });
- document.getElementById('printName').textContent=productNameInput.value.trim()||'Не указан';
- document.getElementById('printMass').textContent=nf.format(Number(massInput.value))+' кг';
- document.getElementById('printDate').textContent=new Date().toLocaleDateString('ru-RU');
- document.getElementById('printTotalPercent').textContent=document.getElementById('totalPercent').textContent;
- document.getElementById('printTotalGrams').textContent=document.getElementById('totalGrams').textContent;
+ if(typeof pdfMake==='undefined'){
+  alert('Библиотека PDF не загрузилась. Проверь интернет и открой сайт в Chrome.');
+  return;
+ }
+ const name=productNameInput.value.trim()||'Без названия';
+ const totalPct=document.getElementById('totalPercent').textContent;
+ const totalGrams=document.getElementById('totalGrams').textContent;
+ const body=[
+  [{text:'№',bold:true},{text:'Компонент',bold:true},{text:'Доля, %',bold:true,alignment:'right'},{text:'Навеска, г',bold:true,alignment:'right'}],
+  ...filled.map((r,i)=>[
+   String(i+1),r.name.value.trim()||'Без названия',
+   {text:r.percent.value.trim()||'—',alignment:'right'},
+   {text:r.percent.value.trim()?r.out.textContent:'—',alignment:'right'}
+  ]),
+  [{text:'ИТОГО',bold:true,colSpan:2},'',{text:totalPct,bold:true,alignment:'right'},{text:totalGrams,bold:true,alignment:'right'}]
+ ];
  const pct=fields.reduce((sum,r)=>sum+(r.percent.value.trim()?Number(r.percent.value):0),0);
- document.getElementById('printNote').textContent=Math.abs(pct-100)>0.000001?'Внимание: сумма долей составляет '+nf.format(pct)+'%, а не 100%.':'Сумма долей: 100%.';
- window.print();
+ const doc={
+  pageSize:'A4',pageMargins:[32,36,32,36],
+  content:[
+   {text:'NIO CITY',color:'#6e527f',bold:true,fontSize:13,characterSpacing:2,margin:[0,0,0,14]},
+   {text:'Ведомость производственных навесок',fontSize:17,bold:true,color:'#29283a',margin:[0,0,0,16]},
+   {text:'Продукт: '+name,margin:[0,0,0,7]},
+   {text:'Масса партии: '+nf.format(Number(massInput.value))+' кг',margin:[0,0,0,7]},
+   {text:'Дата: '+new Date().toLocaleDateString('ru-RU'),margin:[0,0,0,16]},
+   {table:{headerRows:1,widths:[24,'*',70,100],body},layout:{
+     fillColor:(row,node)=>row===0||row===node.table.body.length-1?'#f0e9f3':row%2===0?'#faf8fb':null,
+     hLineColor:()=> '#d8cadc',vLineColor:()=> '#d8cadc',
+     paddingLeft:()=>7,paddingRight:()=>7,paddingTop:()=>8,paddingBottom:()=>8
+   }},
+   {text:Math.abs(pct-100)>0.000001?'Внимание: сумма долей составляет '+nf.format(pct)+'%, а не 100%.':'Сумма долей: 100%.',color:Math.abs(pct-100)>0.000001?'#a85b24':'#6e527f',margin:[0,14,0,0]}
+  ],
+  defaultStyle:{font:'Roboto',fontSize:10,color:'#29283a'}
+ };
+ const safe=name.replace(/[\\/:*?"<>|]/g,'_').slice(0,65)||'navесki';
+ const fileName='Навески_'+safe+'_'+new Date().toISOString().slice(0,10)+'.pdf';
+ try{pdfMake.createPdf(doc).download(fileName);}
+ catch(e){console.error(e);alert('Не удалось скачать PDF. Попробуй открыть калькулятор в Chrome.');}
 });
 calculate();
 </script>
