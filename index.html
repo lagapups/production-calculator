@@ -1,47 +1,117 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Калькулятор производственных навесок</title>
-  <style>
-    *{box-sizing:border-box}body{margin:0;background:#101827;color:#f1f5f9;font:16px system-ui,sans-serif;padding:24px}
-    main{max-width:560px;margin:40px auto;background:#1e293b;border-radius:18px;padding:28px}
-    h1{font-size:25px;margin-top:0}p{color:#cbd5e1}label{display:block;margin:20px 0 7px}
-    input{width:100%;padding:13px;border:1px solid #64748b;border-radius:9px;background:#0f172a;color:white;font:inherit}
-    button{width:100%;margin-top:24px;padding:14px;border:0;border-radius:9px;background:#38bdf8;color:#082f49;font:inherit;font-weight:700}
-    output{display:block;margin-top:24px;padding:18px;background:#0f172a;border-radius:10px;font-size:24px;font-weight:700}
-    small{display:block;color:#94a3b8;margin-top:15px}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Калькулятор навесок — 20 компонентов</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0f172a;color:#f8fafc;font:15px system-ui,Arial,sans-serif;padding:16px}
+main{max-width:940px;margin:auto}
+h1{font-size:25px;margin:10px 0 6px}
+p,.hint{color:#94a3b8}
+.panel{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:16px;margin:16px 0}
+label{display:block;margin-bottom:7px;font-weight:600}
+input{background:#0f172a;border:1px solid #475569;border-radius:8px;color:white;padding:11px;font:inherit;min-width:0;width:100%}
+input:focus{outline:2px solid #38bdf8;outline-offset:1px}
+#mass{max-width:260px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:490px}
+th{text-align:left;color:#cbd5e1;font-size:13px;font-weight:600}
+th,td{padding:8px 5px;border-bottom:1px solid #334155}
+th:first-child,td:first-child{width:32px;text-align:center;color:#94a3b8}
+th:nth-child(3),td:nth-child(3){width:115px}
+th:nth-child(4),td:nth-child(4){width:145px}
+.output{text-align:right;font-variant-numeric:tabular-nums;font-weight:650;white-space:nowrap}
+.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.metric{background:#0f172a;padding:13px;border-radius:10px;min-width:0}
+.metric small{display:block;color:#94a3b8;margin-bottom:6px}
+.metric strong{font-size:20px;overflow-wrap:anywhere}
+.warning{color:#fbbf24;margin-top:12px}
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+button{border:0;border-radius:9px;padding:12px 16px;font:inherit;font-weight:650;cursor:pointer;background:#38bdf8;color:#082f49}
+button.secondary{background:#334155;color:white}
+@media(max-width:600px){body{padding:10px}.panel{padding:10px}.summary{grid-template-columns:1fr}h1{font-size:21px}th,td{padding:7px 3px}input{padding:9px}}
+</style>
 </head>
 <body>
-  <main>
-    <h1>Калькулятор навесок</h1>
-    <p>Рассчитай массу компонента по массе партии и проценту в рецептуре.</p>
-    <form id="calc">
-      <label for="mass">Масса партии, кг</label>
-      <input id="mass" type="number" min="0.001" step="any" value="20" required>
-      <label for="percent">Доля компонента, %</label>
-      <input id="percent" type="number" min="0" max="100" step="any" value="5" required>
-      <button type="submit">Рассчитать</button>
-    </form>
-    <output id="result" aria-live="polite">Навеска: 1 000 г</output>
-    <small>Расчёт: масса партии × процент / 100. Результат в граммах.</small>
-  </main>
-  <script>
-    const form = document.getElementById('calc');
-    const result = document.getElementById('result');
-    form.addEventListener('submit', (event) => {
-      event.preventDefault();
-      const mass = Number(document.getElementById('mass').value);
-      const percent = Number(document.getElementById('percent').value);
-      if (!Number.isFinite(mass) || mass <= 0 || !Number.isFinite(percent) || percent < 0 || percent > 100) {
-        result.textContent = 'Проверь массу и процент (от 0 до 100).';
-        return;
-      }
-      const grams = mass * percent * 10;
-      result.textContent = 'Навеска: ' + new Intl.NumberFormat('ru-RU', {maximumFractionDigits: 3}).format(grams) + ' г';
-    });
-  </script>
+<main>
+<h1>Калькулятор производственных навесок</h1>
+<p>20 компонентов в одной партии. Вводи название и процент, масса в граммах посчитается автоматически.</p>
+<section class="panel">
+<label for="mass">Масса партии, кг</label>
+<input id="mass" type="number" min="0.001" step="any" value="20" inputmode="decimal">
+</section>
+<section class="panel table-wrap">
+<table>
+<thead><tr><th>№</th><th>Компонент</th><th>Доля, %</th><th style="text-align:right">Навеска, г</th></tr></thead>
+<tbody id="rows"></tbody>
+</table>
+</section>
+<section class="panel">
+<div class="summary">
+<div class="metric"><small>Сумма процентов</small><strong id="totalPercent">0 %</strong></div>
+<div class="metric"><small>Сумма навесок</small><strong id="totalGrams">0 г</strong></div>
+<div class="metric"><small>Остаток до 100%</small><strong id="remaining">100 %</strong></div>
+</div>
+<div id="warning" class="warning" role="status"></div>
+</section>
+<div class="actions">
+<button id="copy" type="button">Скопировать расчёт</button>
+<button id="clear" type="button" class="secondary">Очистить компоненты</button>
+</div>
+<p class="hint">Расчёт: масса партии (кг) × процент × 10 = граммы. Данные остаются только в открытой вкладке, пока ты их не скопируешь.</p>
+</main>
+<script>
+const rows=document.getElementById('rows');
+const nf=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:3});
+const fields=[];
+for(let i=0;i<20;i++){
+ const tr=document.createElement('tr');
+ const num=document.createElement('td');num.textContent=String(i+1);
+ const nameTd=document.createElement('td'),percentTd=document.createElement('td'),outTd=document.createElement('td');
+ const name=document.createElement('input');name.type='text';name.placeholder='Название компонента';name.setAttribute('aria-label','Компонент '+(i+1));
+ const percent=document.createElement('input');percent.type='number';percent.min='0';percent.max='100';percent.step='any';percent.inputMode='decimal';percent.placeholder='0';percent.setAttribute('aria-label','Процент компонента '+(i+1));
+ const out=document.createElement('span');out.className='output';out.textContent='—';outTd.className='output';outTd.append(out);
+ nameTd.append(name);percentTd.append(percent);tr.append(num,nameTd,percentTd,outTd);rows.append(tr);
+ fields.push({name,percent,out});
+ percent.addEventListener('input',calculate);
+}
+const massInput=document.getElementById('mass');
+massInput.addEventListener('input',calculate);
+function calculate(){
+ const mass=Number(massInput.value);
+ const massValid=massInput.value.trim()!==''&&Number.isFinite(mass)&&mass>0;
+ let totalPercent=0,totalGrams=0,invalid=false;
+ for(const row of fields){
+  const raw=row.percent.value.trim();
+  if(!raw){row.out.textContent='—';continue;}
+  const pct=Number(raw);
+  if(!Number.isFinite(pct)||pct<0||pct>100){row.out.textContent='Ошибка';invalid=true;continue;}
+  totalPercent+=pct;
+  if(massValid){const grams=mass*pct*10;totalGrams+=grams;row.out.textContent=nf.format(grams)+' г';}
+  else row.out.textContent='—';
+ }
+ document.getElementById('totalPercent').textContent=nf.format(totalPercent)+' %';
+ document.getElementById('totalGrams').textContent=massValid?nf.format(totalGrams)+' г':'—';
+ document.getElementById('remaining').textContent=nf.format(100-totalPercent)+' %';
+ document.getElementById('warning').textContent=!massValid?'Укажи положительную массу партии.':invalid?'Проверь проценты: каждый должен быть от 0 до 100.':totalPercent>100.0000001?'Внимание: сумма процентов превышает 100%.':'';
+ return massValid&&!invalid;
+}
+document.getElementById('clear').addEventListener('click',()=>{
+ for(const row of fields){row.name.value='';row.percent.value='';}
+ calculate();
+});
+document.getElementById('copy').addEventListener('click',async()=>{
+ if(!calculate()){alert('Исправь значения перед копированием.');return;}
+ const lines=['Калькулятор навесок','Масса партии: '+massInput.value+' кг',''];
+ fields.forEach((r,i)=>{if(r.name.value.trim()||r.percent.value.trim())lines.push((i+1)+'. '+(r.name.value.trim()||'Без названия')+' — '+(r.percent.value||'0')+'% — '+r.out.textContent);});
+ lines.push('','Итого: '+document.getElementById('totalPercent').textContent+', '+document.getElementById('totalGrams').textContent);
+ const text=lines.join('\n');
+ try{await navigator.clipboard.writeText(text);alert('Расчёт скопирован.');}
+ catch(e){window.prompt('Скопируй расчёт:',text);}
+});
+calculate();
+</script>
 </body>
 </html>
