@@ -18,6 +18,25 @@ td input{padding:10px 6px}td:nth-child(3) input{text-align:center}.output{text-a
 .summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.metric{background:#f7f1f8;padding:13px;border-radius:10px;min-width:0}.metric small{display:block;color:#7c6e82;margin-bottom:6px}.metric strong{font-size:19px;overflow-wrap:anywhere}.warning{color:#aa5628;margin-top:12px}
 .actions{display:flex;flex-wrap:wrap;gap:10px}button{border:0;border-radius:9px;padding:13px 17px;font:inherit;font-weight:700;cursor:pointer;background:var(--violet);color:white}button.secondary{background:#eee6f0;color:var(--ink)}
 @media(max-width:600px){body{padding:8px}.panel{padding:9px}.summary{grid-template-columns:1fr}h1{font-size:21px}th,td{padding:6px 2px}td input{padding:10px 4px;font-size:14px}th:first-child,td:first-child{width:21px}th:nth-child(2){width:32%}th:nth-child(3){width:20%}th:nth-child(4){width:41%}.output{font-size:12px}.output span{padding:11px 2px}}
+
+#printReport{display:none}
+@media print{
+ @page{size:A4;margin:16mm 13mm}
+ body{background:white;color:#29283a;padding:0;font:11pt Arial,sans-serif}
+ main{display:none!important}
+ #printReport{display:block!important}
+ .printBrand{color:#6e527f;letter-spacing:3px;font-weight:700;font-size:12pt;border-bottom:2px solid #6e527f;padding-bottom:10px}
+ #printReport h2{font-size:18pt;margin:20px 0}
+ .printMeta{display:grid;gap:8px;margin-bottom:20px}
+ .printTable{width:100%;border-collapse:collapse;table-layout:auto}
+ .printTable th,.printTable td{border:1px solid #cbbbd1;padding:9px;text-align:left;overflow-wrap:anywhere}
+ .printTable thead{display:table-header-group}
+ .printTable thead th{background:#f0e9f3;color:#29283a}
+ .printTable td:nth-child(3),.printTable td:nth-child(4),.printTable tfoot th:nth-last-child(-n+2){text-align:right}
+ .printTable tr{break-inside:avoid}
+ .printTable tfoot th{background:#f0e9f3;font-weight:bold}
+ #printNote{font-size:10pt;color:#675b6d;margin-top:15px}
+}
 </style>
 </head>
 <body>
@@ -25,6 +44,8 @@ td input{padding:10px 6px}td:nth-child(3) input{text-align:center}.output{text-a
 <header><div class="brand">NIO CITY</div><h1>Калькулятор производственных навесок</h1></header>
 <p>20 компонентов. Вводи проценты, и навеска сразу появится справа от каждой строки.</p>
 <section class="panel">
+<label for="productName">Название продукта</label>
+<input id="productName" type="text" placeholder="Например: Крем регулярный" maxlength="160" style="margin-bottom:16px">
 <label for="mass">Масса партии, кг</label>
 <input id="mass" type="number" min="0.001" step="any" value="20" inputmode="decimal">
 </section>
@@ -43,13 +64,22 @@ td input{padding:10px 6px}td:nth-child(3) input{text-align:center}.output{text-a
 <div id="warning" class="warning" role="status"></div>
 </section>
 <div class="actions">
+<button id="pdf" type="button">Сохранить PDF</button>
 <button id="copy" type="button">Скопировать расчёт</button>
 <button id="clear" type="button" class="secondary">Очистить компоненты</button>
 </div>
-<p class="hint">Расчёт: масса партии (кг) × процент × 10 = граммы. Данные остаются только в открытой вкладке, пока ты их не скопируешь.</p>
+<p class="hint">Для PDF выбери в открывшемся меню печати «Сохранить как PDF». Расчёт: масса партии (кг) × процент × 10 = граммы. Данные остаются только в открытой вкладке, пока ты их не скопируешь.</p>
 </main>
+<section id="printReport" aria-hidden="true">
+<div class="printBrand">NIO CITY</div>
+<h2>Ведомость производственных навесок</h2>
+<div class="printMeta"><div><b>Продукт:</b> <span id="printName"></span></div><div><b>Масса партии:</b> <span id="printMass"></span></div><div><b>Дата:</b> <span id="printDate"></span></div></div>
+<table class="printTable"><thead><tr><th>№</th><th>Компонент</th><th>Доля, %</th><th>Навеска, г</th></tr></thead><tbody id="printRows"></tbody><tfoot><tr><th colspan="2">ИТОГО</th><th id="printTotalPercent"></th><th id="printTotalGrams"></th></tr></tfoot></table>
+<p id="printNote"></p>
+</section>
 <script>
 const rows=document.getElementById('rows');
+const productNameInput=document.getElementById('productName');
 const nf=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:3});
 const fields=[];
 for(let i=0;i<20;i++){
@@ -90,12 +120,33 @@ document.getElementById('clear').addEventListener('click',()=>{
 });
 document.getElementById('copy').addEventListener('click',async()=>{
  if(!calculate()){alert('Исправь значения перед копированием.');return;}
- const lines=['Калькулятор навесок','Масса партии: '+massInput.value+' кг',''];
+ const lines=['Калькулятор навесок','Продукт: '+(productNameInput.value.trim()||'Не указан'),'Масса партии: '+massInput.value+' кг',''];
  fields.forEach((r,i)=>{if(r.name.value.trim()||r.percent.value.trim())lines.push((i+1)+'. '+(r.name.value.trim()||'Без названия')+' — '+(r.percent.value||'0')+'% — '+r.out.textContent);});
  lines.push('','Итого: '+document.getElementById('totalPercent').textContent+', '+document.getElementById('totalGrams').textContent);
  const text=lines.join('\n');
  try{await navigator.clipboard.writeText(text);alert('Расчёт скопирован.');}
  catch(e){window.prompt('Скопируй расчёт:',text);}
+});
+document.getElementById('pdf').addEventListener('click',()=>{
+ if(!calculate()){alert('Проверь массу партии и проценты перед сохранением PDF.');return;}
+ const filled=fields.filter(r=>r.name.value.trim()||r.percent.value.trim());
+ if(!filled.length){alert('Заполни хотя бы одну строку рецептуры.');return;}
+ const printRows=document.getElementById('printRows');
+ printRows.replaceChildren();
+ filled.forEach((r,i)=>{
+  const tr=document.createElement('tr');
+  const values=[String(i+1),r.name.value.trim()||'Без названия',r.percent.value.trim()||'—',r.percent.value.trim()?r.out.textContent:'—'];
+  values.forEach(value=>{const td=document.createElement('td');td.textContent=value;tr.append(td);});
+  printRows.append(tr);
+ });
+ document.getElementById('printName').textContent=productNameInput.value.trim()||'Не указан';
+ document.getElementById('printMass').textContent=nf.format(Number(massInput.value))+' кг';
+ document.getElementById('printDate').textContent=new Date().toLocaleDateString('ru-RU');
+ document.getElementById('printTotalPercent').textContent=document.getElementById('totalPercent').textContent;
+ document.getElementById('printTotalGrams').textContent=document.getElementById('totalGrams').textContent;
+ const pct=fields.reduce((sum,r)=>sum+(r.percent.value.trim()?Number(r.percent.value):0),0);
+ document.getElementById('printNote').textContent=Math.abs(pct-100)>0.000001?'Внимание: сумма долей составляет '+nf.format(pct)+'%, а не 100%.':'Сумма долей: 100%.';
+ window.print();
 });
 calculate();
 </script>
