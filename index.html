@@ -14,6 +14,9 @@ input:focus{outline:2px solid #9c76b0;outline-offset:1px}#mass{max-width:240px;f
 .table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;table-layout:fixed}th{font-size:12px;color:#75677d;text-align:left}th,td{padding:7px 3px;border-bottom:1px solid #eee7ef}
 th:first-child,td:first-child{width:26px;text-align:center;color:#a091a6}th:nth-child(2){width:35%}th:nth-child(3){width:20%}th:nth-child(4){width:36%}
 td input{padding:10px 6px}td:nth-child(3) input{text-align:center}.output{text-align:right;font-variant-numeric:tabular-nums;font-weight:750;color:var(--violet);white-space:nowrap;font-size:13px}
+.info-btn{width:100%;margin-top:5px;padding:5px 2px;font-size:11px;background:#eee6f0;color:#6e527f;border-radius:6px}
+.info-panel{margin:7px 0 4px;padding:10px;border:1px solid #d8c9de;border-radius:9px;background:#faf6fc;font-size:12px;line-height:1.5;color:#40334a}
+.info-panel strong{color:#6e527f}
 .output span{display:inline-block;background:var(--lav);border-radius:8px;padding:11px 5px;min-width:100%;text-align:center}
 .summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.metric{background:#f7f1f8;padding:13px;border-radius:10px;min-width:0}.metric small{display:block;color:#7c6e82;margin-bottom:6px}.metric strong{font-size:19px;overflow-wrap:anywhere}.warning{color:#aa5628;margin-top:12px}
 .actions{display:flex;flex-wrap:wrap;gap:10px}button{border:0;border-radius:9px;padding:13px 17px;font:inherit;font-weight:700;cursor:pointer;background:var(--violet);color:white}button.secondary{background:#eee6f0;color:var(--ink)}
@@ -83,6 +86,24 @@ td input{padding:10px 6px}td:nth-child(3) input{text-align:center}.output{text-a
 const rows=document.getElementById('rows');
 const productNameInput=document.getElementById('productName');
 const nf=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:3});
+const ingredientInfo={
+'aqua':['Растворитель, водная основа косметического средства.','Водная фаза; порядок загрузки зависит от рецептуры.'],
+'phytic acid':['Хелатирующий компонент, помогает связывать ионы металлов.','Обычно водная фаза; проверять растворимость и pH.'],
+'niacinamide':['Ниацинамид (витамин B3), актив для ухода за кожей.','Обычно растворяют в водной фазе; учитывать pH и рекомендации поставщика.'],
+'sepimax zen':['Полимерный загуститель и стабилизатор (Polyacrylate Crosspolymer-6).','Диспергировать по инструкции поставщика; контролировать образование комков.'],
+'ferulic acid':['Феруловая кислота, антиоксидант.','Имеет ограниченную растворимость в воде; выбор растворителя и pH зависит от формулы.'],
+'aquaxyl':['Торговый увлажняющий комплекс на основе сахаров.','Обычно водная фаза; уточнять условия ввода по паспорту сырья.'],
+'butylene glycol':['Бутиленгликоль, увлажнитель и растворитель.','Обычно водная фаза; может применяться для предварительного растворения компонентов.'],
+'3-o-ethyl ascorbic acid':['Этил-аскорбиновая кислота, производное витамина C.','Обычно растворяют в водной фазе; контролируют pH и температуру по спецификации.'],
+'tocopherol':['Токоферол, антиоксидант жирорастворимой фазы.','Обычно вводят в масляную фазу; избегать излишнего нагрева.'],
+'euxyl pe 9010':['Консервирующая смесь феноксиэтанола и этилгексилглицерина.','Фаза и температура ввода зависят от рекомендаций производителя.'],
+'parfum':['Парфюмерная композиция, отдушка.','Часто вводят на охлаждении; учитывать растворимость и совместимость с основой.'],
+'sodium hydroxide 10% solution':['10%-й раствор гидроксида натрия для корректировки pH.','Добавляют постепенно при перемешивании с контролем pH; соблюдать защиту от щёлочи.'],
+'cetearyl alcohol':['Жирный спирт: загуститель, соэмульгатор, стабилизатор.','Обычно расплавляют в масляной фазе при нагревании.'],
+'glycerin':['Глицерин, увлажнитель.','Обычно водная фаза; подходит для предварительного диспергирования ряда загустителей.'],
+'xanthan gum':['Ксантановая камедь, загуститель и стабилизатор.','Предварительно диспергируют или вводят при перемешивании для предотвращения комков.']
+};
+const normalizeIngredient=v=>v.trim().toLowerCase().replace(/ё/g,'е').replace(/\\s+/g,' ');
 const fields=[];
 for(let i=0;i<20;i++){
  const tr=document.createElement('tr');
@@ -91,7 +112,24 @@ for(let i=0;i<20;i++){
  const name=document.createElement('input');name.type='text';name.placeholder='Название компонента';name.setAttribute('aria-label','Компонент '+(i+1));
  const percent=document.createElement('input');percent.type='number';percent.min='0';percent.max='100';percent.step='any';percent.inputMode='decimal';percent.placeholder='0';percent.setAttribute('aria-label','Процент компонента '+(i+1));
  const out=document.createElement('span');out.className='output';out.textContent='—';outTd.className='output';outTd.append(out);
- nameTd.append(name);percentTd.append(percent);tr.append(num,nameTd,percentTd,outTd);rows.append(tr);
+ nameTd.append(name);percentTd.append(percent);
+ const infoBtn=document.createElement('button');infoBtn.type='button';infoBtn.className='info-btn';infoBtn.textContent='ⓘ О сырье';
+ const infoPanel=document.createElement('div');infoPanel.className='info-panel';infoPanel.hidden=true;
+ infoBtn.addEventListener('click',()=>{
+  if(!infoPanel.hidden){infoPanel.hidden=true;return;}
+  const key=normalizeIngredient(name.value);
+  const info=ingredientInfo[key];
+  infoPanel.replaceChildren();
+  const heading=document.createElement('strong');heading.textContent=info?'Назначение:':'Справка пока не добавлена';
+  infoPanel.append(heading);
+  if(info){const p=document.createElement('div');p.textContent=info[0];const how=document.createElement('div');how.textContent='Способ ввода: '+info[1];infoPanel.append(p,how);}
+  else {const p=document.createElement('div');p.textContent='Для «'+(name.value.trim()||'этого компонента')+'» пока нет проверенного описания. Нужна спецификация производителя.';infoPanel.append(p);}
+  const note=document.createElement('div');note.style.marginTop='5px';note.style.opacity='.7';note.textContent='Общая справка, не технологическая инструкция.';infoPanel.append(note);
+  infoPanel.hidden=false;
+ });
+ name.addEventListener('input',()=>{infoPanel.hidden=true;});
+ nameTd.append(infoBtn,infoPanel);
+ tr.append(num,nameTd,percentTd,outTd);rows.append(tr);
  fields.push({name,percent,out});
  percent.addEventListener('input',calculate);
 }
@@ -117,7 +155,7 @@ function calculate(){
  return massValid&&!invalid;
 }
 document.getElementById('clear').addEventListener('click',()=>{
- for(const row of fields){row.name.value='';row.percent.value='';}
+ for(const row of fields){row.name.value='';row.percent.value='';row.name.dispatchEvent(new Event('input'));}
  calculate();
 });
 document.getElementById('copy').addEventListener('click',async()=>{
