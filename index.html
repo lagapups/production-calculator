@@ -5,46 +5,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Калькулятор навесок — 20 компонентов</title>
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#0f172a;color:#f8fafc;font:15px system-ui,Arial,sans-serif;padding:16px}
-main{max-width:940px;margin:auto}
-h1{font-size:25px;margin:10px 0 6px}
-p,.hint{color:#94a3b8}
-.panel{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:16px;margin:16px 0}
-label{display:block;margin-bottom:7px;font-weight:600}
-input{background:#0f172a;border:1px solid #475569;border-radius:8px;color:white;padding:11px;font:inherit;min-width:0;width:100%}
-input:focus{outline:2px solid #38bdf8;outline-offset:1px}
-#mass{max-width:260px}
-.table-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;min-width:490px}
-th{text-align:left;color:#cbd5e1;font-size:13px;font-weight:600}
-th,td{padding:8px 5px;border-bottom:1px solid #334155}
-th:first-child,td:first-child{width:32px;text-align:center;color:#94a3b8}
-th:nth-child(3),td:nth-child(3){width:115px}
-th:nth-child(4),td:nth-child(4){width:145px}
-.output{text-align:right;font-variant-numeric:tabular-nums;font-weight:650;white-space:nowrap}
-.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.metric{background:#0f172a;padding:13px;border-radius:10px;min-width:0}
-.metric small{display:block;color:#94a3b8;margin-bottom:6px}
-.metric strong{font-size:20px;overflow-wrap:anywhere}
-.warning{color:#fbbf24;margin-top:12px}
-.actions{display:flex;flex-wrap:wrap;gap:10px}
-button{border:0;border-radius:9px;padding:12px 16px;font:inherit;font-weight:650;cursor:pointer;background:#38bdf8;color:#082f49}
-button.secondary{background:#334155;color:white}
-@media(max-width:600px){body{padding:10px}.panel{padding:10px}.summary{grid-template-columns:1fr}h1{font-size:21px}th,td{padding:7px 3px}input{padding:9px}}
+:root{--ink:#29283a;--violet:#6e527f;--lav:#f0e9f3;--orange:#df9868;--line:#e7dce9}
+*{box-sizing:border-box}body{margin:0;background:#faf8f9;color:var(--ink);font:15px system-ui,Arial,sans-serif;padding:14px}
+main{max-width:850px;margin:auto}header{padding:20px 8px 10px}.brand{font-size:13px;letter-spacing:.24em;font-weight:800;color:var(--violet)}h1{font-size:25px;margin:9px 0}p,.hint{color:#776e7c}
+.panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px;margin:14px 0;box-shadow:0 4px 22px #4c36500a}
+label{display:block;margin-bottom:8px;font-weight:650}input{background:#fff;border:1px solid #d7cbdc;border-radius:9px;color:var(--ink);padding:10px;font:inherit;min-width:0;width:100%}
+input:focus{outline:2px solid #9c76b0;outline-offset:1px}#mass{max-width:240px;font-size:20px;font-weight:650}
+.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;table-layout:fixed}th{font-size:12px;color:#75677d;text-align:left}th,td{padding:7px 3px;border-bottom:1px solid #eee7ef}
+th:first-child,td:first-child{width:26px;text-align:center;color:#a091a6}th:nth-child(2){width:35%}th:nth-child(3){width:20%}th:nth-child(4){width:36%}
+td input{padding:10px 6px}td:nth-child(3) input{text-align:center}.output{text-align:right;font-variant-numeric:tabular-nums;font-weight:750;color:var(--violet);white-space:nowrap;font-size:13px}
+.output span{display:inline-block;background:var(--lav);border-radius:8px;padding:11px 5px;min-width:100%;text-align:center}
+.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.metric{background:#f7f1f8;padding:13px;border-radius:10px;min-width:0}.metric small{display:block;color:#7c6e82;margin-bottom:6px}.metric strong{font-size:19px;overflow-wrap:anywhere}.warning{color:#aa5628;margin-top:12px}
+.actions{display:flex;flex-wrap:wrap;gap:10px}button{border:0;border-radius:9px;padding:13px 17px;font:inherit;font-weight:700;cursor:pointer;background:var(--violet);color:white}button.secondary{background:#eee6f0;color:var(--ink)}
+@media(max-width:600px){body{padding:8px}.panel{padding:9px}.summary{grid-template-columns:1fr}h1{font-size:21px}th,td{padding:6px 2px}td input{padding:10px 4px;font-size:14px}th:first-child,td:first-child{width:21px}th:nth-child(2){width:32%}th:nth-child(3){width:20%}th:nth-child(4){width:41%}.output{font-size:12px}.output span{padding:11px 2px}}
 </style>
 </head>
 <body>
 <main>
-<h1>Калькулятор производственных навесок</h1>
-<p>20 компонентов в одной партии. Вводи название и процент, масса в граммах посчитается автоматически.</p>
+<header><div class="brand">NIO CITY</div><h1>Калькулятор производственных навесок</h1></header>
+<p>20 компонентов. Вводи проценты, и навеска сразу появится справа от каждой строки.</p>
 <section class="panel">
 <label for="mass">Масса партии, кг</label>
 <input id="mass" type="number" min="0.001" step="any" value="20" inputmode="decimal">
 </section>
 <section class="panel table-wrap">
 <table>
-<thead><tr><th>№</th><th>Компонент</th><th>Доля, %</th><th style="text-align:right">Навеска, г</th></tr></thead>
+<thead><tr><th>№</th><th>Компонент</th><th>Доля, %</th><th style="text-align:right">= Навеска, г</th></tr></thead>
 <tbody id="rows"></tbody>
 </table>
 </section>
