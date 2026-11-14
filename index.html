@@ -41,6 +41,7 @@ td input{padding:10px 6px}td:nth-child(3) input{text-align:center}.output{text-a
  #printNote{font-size:10pt;color:#675b6d;margin-top:15px}
 }
 </style>
+<script src="ingredients-catalog.js?v=8" defer></script>
 </head>
 <body>
 <main>
@@ -144,6 +145,10 @@ const extraInfo=[
 for(const [names,info] of extraInfo)for(const n of names)ingredientInfo[n]=info;
 
 const normalizeIngredient=v=>v.trim().toLowerCase().replace(/ё/g,'е').replace(/\\s+/g,' ');
+const fullCatalog=new Map();
+for(const entry of (window.NFK_INGREDIENTS||[])){
+ for(const label of [entry.n,...entry.v])fullCatalog.set(normalizeIngredient(label),entry);
+}
 const fields=[];
 for(let i=0;i<20;i++){
  const tr=document.createElement('tr');
@@ -158,13 +163,14 @@ for(let i=0;i<20;i++){
  infoBtn.addEventListener('click',()=>{
   if(!infoPanel.hidden){infoPanel.hidden=true;return;}
   const key=normalizeIngredient(name.value);
-  const info=ingredientInfo[key];
+  const entry=fullCatalog.get(key);
+  const info=entry?[entry.d,entry.w]:ingredientInfo[key];
   infoPanel.replaceChildren();
   const heading=document.createElement('strong');heading.textContent=info?'Назначение:':'Справка пока не добавлена';
   infoPanel.append(heading);
-  if(info){const p=document.createElement('div');p.textContent=info[0];const how=document.createElement('div');how.textContent='Способ ввода: '+info[1];infoPanel.append(p,how);}
+  if(info){const p=document.createElement('div');p.textContent=info[0];const how=document.createElement('div');how.textContent='Способ ввода: '+info[1];infoPanel.append(p,how);if(entry){const status=document.createElement('div');status.style.marginTop='5px';status.style.opacity='.7';status.textContent='Источник: справочник НФК · '+entry.s+' · встречается в '+entry.c+' листах-рецептурах';infoPanel.append(status);}}
   else {const p=document.createElement('div');p.textContent='Для «'+(name.value.trim()||'этого компонента')+'» пока нет проверенного описания. Нужна спецификация производителя.';infoPanel.append(p);}
-  const note=document.createElement('div');note.style.marginTop='5px';note.style.opacity='.7';note.textContent='Общая справка, не технологическая инструкция.';infoPanel.append(note);
+  const note=document.createElement('div');note.style.marginTop='5px';note.style.opacity='.7';note.textContent='Справка не заменяет TDS и утверждённую технологическую инструкцию.';infoPanel.append(note);
   infoPanel.hidden=false;
  });
  name.addEventListener('input',()=>{infoPanel.hidden=true;});
