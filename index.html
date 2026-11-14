@@ -144,7 +144,7 @@ const extraInfo=[
 ];
 for(const [names,info] of extraInfo)for(const n of names)ingredientInfo[n]=info;
 
-const normalizeIngredient=v=>v.trim().toLowerCase().replace(/ё/g,'е').replace(/\\s+/g,' ');
+const normalizeIngredient=v=>v.trim().toLowerCase().replace(/ё/g,'е').replace(/\s+/g,' ');
 const fullCatalog=new Map();
 for(const entry of (window.NFK_INGREDIENTS||[])){
  for(const label of [entry.n,...entry.v])fullCatalog.set(normalizeIngredient(label),entry);
