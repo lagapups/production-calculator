@@ -15,7 +15,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
+      - name: Check preinstalled Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          test -d "$ANDROID_HOME" || { echo 'Android SDK missing'; exit 1; }
+          ls "$ANDROID_HOME/platforms" || true
       - name: Prepare Capacitor project
         run: |
           npm init -y
