@@ -87,6 +87,11 @@ td input{padding:10px 6px}td:nth-child(3) input{text-align:center}.output{text-a
 </div>
 <div id="warning" class="warning" role="status"></div>
 </section>
+<section class="panel">
+<label for="batchNote">Примечание о варке партии</label>
+<textarea id="batchNote" rows="5" maxlength="5000" placeholder="Например: фактическая температура, время эмульгирования, корректировки, наблюдения по партии…" style="width:100%;resize:vertical;border:1px solid #d7cbdc;border-radius:9px;padding:12px;font:inherit;color:var(--ink);background:#fff"></textarea>
+<p class="hint">Примечание попадёт в PDF вместе с навесками. Запись не сохраняется на сайте.</p>
+</section>
 <div class="actions">
 <button id="pdf" type="button">Сохранить PDF</button>
 <button id="copy" type="button">Скопировать расчёт</button>
@@ -229,6 +234,8 @@ document.getElementById('copy').addEventListener('click',async()=>{
  const lines=['Калькулятор навесок','Продукт: '+(productNameInput.value.trim()||'Не указан'),'Масса партии: '+massInput.value+' кг',''];
  fields.forEach((r,i)=>{if(r.name.value.trim()||r.percent.value.trim())lines.push((i+1)+'. '+(r.name.value.trim()||'Без названия')+' — '+(r.percent.value||'0')+'% — '+r.out.textContent);});
  lines.push('','Итого: '+document.getElementById('totalPercent').textContent+', '+document.getElementById('totalGrams').textContent);
+ const batchNote=document.getElementById('batchNote').value.trim();
+ if(batchNote)lines.push('','Примечание о варке партии:',batchNote);
  const text=lines.join('\n');
  try{await navigator.clipboard.writeText(text);alert('Расчёт скопирован.');}
  catch(e){window.prompt('Скопируй расчёт:',text);}
@@ -254,6 +261,7 @@ document.getElementById('pdf').addEventListener('click',()=>{
   [{text:'ИТОГО',bold:true,colSpan:2},'',{text:totalPct,bold:true,alignment:'right'},{text:totalGrams,bold:true,alignment:'right'}]
  ];
  const pct=fields.reduce((sum,r)=>sum+(r.percent.value.trim()?Number(r.percent.value):0),0);
+ const batchNote=document.getElementById('batchNote').value.trim();
  const doc={
   pageSize:'A4',pageMargins:[32,36,32,36],
   content:[
@@ -267,7 +275,8 @@ document.getElementById('pdf').addEventListener('click',()=>{
      hLineColor:()=> '#d8cadc',vLineColor:()=> '#d8cadc',
      paddingLeft:()=>7,paddingRight:()=>7,paddingTop:()=>8,paddingBottom:()=>8
    }},
-   {text:Math.abs(pct-100)>0.000001?'Внимание: сумма долей составляет '+nf.format(pct)+'%, а не 100%.':'Сумма долей: 100%.',color:Math.abs(pct-100)>0.000001?'#a85b24':'#6e527f',margin:[0,14,0,0]}
+   {text:Math.abs(pct-100)>0.000001?'Внимание: сумма долей составляет '+nf.format(pct)+'%, а не 100%.':'Сумма долей: 100%.',color:Math.abs(pct-100)>0.000001?'#a85b24':'#6e527f',margin:[0,14,0,0]},
+   ...(batchNote?[{stack:[{text:'Примечание о варке партии',bold:true,fontSize:12,color:'#6e527f',margin:[0,0,0,7]},{text:batchNote,preserveLeadingSpaces:true}],margin:[0,18,0,0]}]:[])
   ],
   defaultStyle:{font:'Roboto',fontSize:10,color:'#29283a'}
  };
