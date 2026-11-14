@@ -240,7 +240,7 @@ document.getElementById('copy').addEventListener('click',async()=>{
  try{await navigator.clipboard.writeText(text);alert('Расчёт скопирован.');}
  catch(e){window.prompt('Скопируй расчёт:',text);}
 });
-document.getElementById('pdf').addEventListener('click',()=>{
+document.getElementById('pdf').addEventListener('click',async()=>{
  if(!calculate()){alert('Проверь массу партии и проценты перед сохранением PDF.');return;}
  const filled=fields.filter(r=>r.name.value.trim()||r.percent.value.trim());
  if(!filled.length){alert('Заполни хотя бы одну строку рецептуры.');return;}
@@ -282,8 +282,33 @@ document.getElementById('pdf').addEventListener('click',()=>{
  };
  const safe=name.replace(/[\\/:*?"<>|]/g,'_').slice(0,65)||'navесki';
  const fileName='Навески_'+safe+'_'+new Date().toISOString().slice(0,10)+'.pdf';
- try{pdfMake.createPdf(doc).download(fileName);}
- catch(e){console.error(e);alert('Не удалось скачать PDF. Попробуй открыть калькулятор в Chrome.');}
+ try{
+  const capacitor=window.Capacitor;
+  const fs=capacitor?.Plugins?.Filesystem;
+  const share=capacitor?.Plugins?.Share;
+  if(capacitor?.isNativePlatform?.()&&fs&&share){
+    const base64=await new Promise((resolve,reject)=>{
+      try{pdfMake.createPdf(doc).getBase64(resolve);}catch(err){reject(err);}
+    });
+    const saved=await fs.writeFile({
+      path:fileName,
+      data:base64,
+      directory:'CACHE',
+      recursive:true
+    });
+    await share.share({
+      title:'Ведомость навесок',
+      text:'PDF с навесками и примечанием о варке',
+      url:saved.uri,
+      dialogTitle:'Сохранить или отправить PDF'
+    });
+  }else{
+    pdfMake.createPdf(doc).download(fileName);
+  }
+ }catch(e){
+  console.error('Ошибка экспорта PDF:',e);
+  alert('Не удалось сохранить PDF: '+(e?.message||String(e))+'.');
+ }
 });
 
 /* Локальное OCR. Изображение не отправляется приложением на сервер.
